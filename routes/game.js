@@ -60,6 +60,13 @@ function generateLetterPool() {
   }
   return pool.sort(() => Math.random() - 0.5);
 }
+function validateMove(game, username, word) {
+  if (!game) return { error: "Oyun bulunamadı", status: 404 };
+  if (game.status !== "active") return { error: "Oyun aktif değil", status: 400 };
+  if (game.turn !== username) return { error: "Sıra sizde değil", status: 403 };
+  if (!isValidWord(word)) return { error: "Geçersiz kelime", status: 400 };
+  return null;
+}
 
 // Yeni oyun başlat
 router.post("/start-game", async (req, res) => {
@@ -151,13 +158,8 @@ router.get("/finished-games/:username", async (req, res) => {
 router.post("/play", async (req, res) => {
   const { gameId, username, word, startRow, startCol, direction } = req.body;
   const game = await Game.findById(gameId);
-  if (!game) return res.status(404).json({ message: "Oyun bulunamadı" });
-  if (game.status !== "active")
-    return res.status(400).json({ message: "Oyun aktif değil" });
-  if (game.turn !== username)
-    return res.status(403).json({ message: "Sıra sizde değil" });
-  if (!isValidWord(word))
-    return res.status(400).json({ message: "Geçersiz kelime" });
+  const validationError = validateMove(game, username, word);
+    if (validationError) return res.status(validationError.status).json({ message: validationError.error });
 
   const board = game.board.map((row) => [...row]);
   const mineMap = game.mineMap || [];
