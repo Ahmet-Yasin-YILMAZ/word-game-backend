@@ -61,12 +61,13 @@ function generateLetterPool() {
   return pool.sort(() => Math.random() - 0.5);
 }
 function validateMove(game, username, word) {
-  if (!game) return { error: "Oyun bulunamadı", status: 404 };
-  if (game.status !== "active") return { error: "Oyun aktif değil", status: 400 };
-  if (game.turn !== username) return { error: "Sıra sizde değil", status: 403 };
-  if (!isValidWord(word)) return { error: "Geçersiz kelime", status: 400 };
+  if (!game) return { status: 404, error: "Oyun bulunamadı" };
+  if (game.status !== "active") return { status: 400, error: "Oyun aktif değil" };
+  if (game.turn !== username) return { status: 403, error: "Sıra sizde değil" };
+  if (!isValidWord(word)) return { status: 400, error: "Geçersiz kelime" };
   return null;
 }
+
 
 // Yeni oyun başlat
 router.post("/start-game", async (req, res) => {
