@@ -51,6 +51,30 @@ function generateMineMap() {
   };
 }
 
+// Yardımcı Fonksiyonlar (aynı dosyada veya ayrı bir dosyada tanımlanabilir)
+function isGamePlayable(game, username, word) {
+  if (!game) return { status: 404, error: "Oyun bulunamadı" };
+  if (game.status !== "active") return { status: 400, error: "Oyun aktif değil" };
+  if (game.turn !== username) return { status: 403, error: "Sıra sizde değil" };
+  if (!isValidWord(word)) return { status: 400, error: "Geçersiz kelime" };
+  return null;
+}
+
+function getDirectionDeltas(direction) {
+  const directions = {
+    horizontal: [0, 1],
+    left: [0, -1],
+    vertical: [1, 0],
+    up: [-1, 0],
+    "diag-right-down": [1, 1],
+    "diag-left-down": [1, -1],
+    "diag-left-up": [-1, -1],
+    "diag-right-up": [-1, 1],
+  };
+  return directions[direction] || null;
+}
+
+
 function generateLetterPool() {
   const pool = [];
   for (const [letter, count] of Object.entries(letterPoolDef)) {
@@ -183,10 +207,13 @@ router.get("/finished-games/:username", async (req, res) => {
 router.post("/play", async (req, res) => {
   const { gameId, username, word, startRow, startCol, direction } = req.body;
   const game = await Game.findById(gameId);
-  const validationError = validateMove(game, username, word);
-  if (validationError) {
-    return res.status(validationError.status).json({ message: validationError.error });
-  }
+  if (!game) return res.status(404).json({ message: "Oyun bulunamadı" });
+  if (game.status !== "active")
+    return res.status(400).json({ message: "Oyun aktif değil" });
+  if (game.turn !== username)
+    return res.status(403).json({ message: "Sıra sizde değil" });
+  if (!isValidWord(word))
+    return res.status(400).json({ message: "Geçersiz kelime" });
 
   const board = game.board.map((row) => [...row]);
   const mineMap = game.mineMap || [];
@@ -210,47 +237,6 @@ router.post("/play", async (req, res) => {
   let totalScore = 0;
   let wordMultiplier = 1;
   let usedLetters = [];
-  let skipTurn = false;
-
-  let deltaRow = 0;
-  let deltaCol = 0;
-
-  switch (direction) {
-    case "horizontal": // →
-      deltaRow = 0;
-      deltaCol = 1;
-      break;
-    case "left": // ←
-      deltaRow = 0;
-      deltaCol = -1;
-      break;
-    case "vertical": // ↓
-      deltaRow = 1;
-      deltaCol = 0;
-      break;
-    case "up": // ↑
-      deltaRow = -1;
-      deltaCol = 0;
-      break;
-    case "diag-right-down": // ↘
-      deltaRow = 1;
-      deltaCol = 1;
-      break;
-    case "diag-left-down": // ↙
-      deltaRow = 1;
-      deltaCol = -1;
-      break;
-    case "diag-left-up": // ↖
-      deltaRow = -1;
-      deltaCol = -1;
-      break;
-    case "diag-right-up": // ↗
-      deltaRow = -1;
-      deltaCol = 1;
-      break;
-    default:
-      return res.status(400).json({ message: "Geçersiz yön!" });
-  }
   
 
   for (let i = 0; i < word.length; i++) {
