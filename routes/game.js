@@ -60,28 +60,35 @@ function generateLetterPool() {
   }
   return pool.sort(() => Math.random() - 0.5);
 }
-function isGameFound(game) {
-  return game !== null && game !== undefined;
-}
-
-function isGameActive(game) {
-  return game.status === "active";
-}
-
-function isPlayersTurn(game, username) {
-  return game.turn === username;
-}
-
-function isWordValid(word) {
-  return isValidWord(word);
-}
-
-function validateMoveInput(game, username, word) {
-  if (!isGameFound(game)) return { status: 404, error: "Oyun bulunamadı" };
-  if (!isGameActive(game)) return { status: 400, error: "Oyun aktif değil" };
-  if (!isPlayersTurn(game, username)) return { status: 403, error: "Sıra sizde değil" };
-  if (!isWordValid(word)) return { status: 400, error: "Geçersiz kelime" };
+function checkGameExists(game) {
+  if (!game) return { status: 404, error: "Oyun bulunamadı" };
   return null;
+}
+
+function checkGameStatus(game) {
+  if (game.status !== "active") return { status: 400, error: "Oyun aktif değil" };
+  return null;
+}
+
+function checkTurn(game, username) {
+  if (game.turn !== username) return { status: 403, error: "Sıra sizde değil" };
+  return null;
+}
+
+function checkValidWord(word) {
+  if (!isValidWord(word)) return { status: 400, error: "Geçersiz kelime" };
+  return null;
+}
+
+function validateMove(game, username, word) {
+  const checks = [
+    checkGameExists(game),
+    checkGameStatus(game),
+    checkTurn(game, username),
+    checkValidWord(word)
+  ];
+
+  return checks.find(err => err !== null);
 }
 
 
@@ -176,8 +183,10 @@ router.get("/finished-games/:username", async (req, res) => {
 router.post("/play", async (req, res) => {
   const { gameId, username, word, startRow, startCol, direction } = req.body;
   const game = await Game.findById(gameId);
-  const validationError = validateMoveInput(game, username, word);
-    if (validationError) return res.status(validationError.status).json({ message: validationError.error });
+  const validationError = validateMove(game, username, word);
+  if (validationError) {
+    return res.status(validationError.status).json({ message: validationError.error });
+  }
 
   const board = game.board.map((row) => [...row]);
   const mineMap = game.mineMap || [];
