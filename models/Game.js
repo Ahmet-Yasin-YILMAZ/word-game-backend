@@ -20,10 +20,6 @@ const gameSchema = new mongoose.Schema({
   lastMoveAt: { type: Date, default: Date.now },
   consecutivePasses: { type: Number, default: 0 },
   mineMap: [[String]],
-  letters: {
-    type: Map,
-    of: [String], // oyuncuya özel harf listesi (örnek: { yasin: ['A', 'K', ...] })
-  },
   pool: [String],
   scores: {
     type: Map,
